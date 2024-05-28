@@ -88,7 +88,23 @@ CREATE TABLE IF NOT EXISTS likes (
 In this code, a new table named `likes` is created with three columns: `id`, `post_id`, and `user_id`. The `post_id` and `user_id` columns are foreign keys that reference the `id` columns of the `posts` and `users` tables, respectively. This relationship ensures that each like record is associated with a specific post and user. This table connects the `posts` and `users` tables that have a many-to-many relationship. 
 
 ### Follows
-My client required a system for users to follow other users. This system needed to ensure that only logged-in users or groups. The following code shows my implementation, which I will explain in detail:
+My client required a system for users to follow other users. This system needed to ensure that only logged-in users or groups. 
+This system is implemented through two main endpoints: `/follow/user/<user_id>` and `follow/thread/<thread_id>` that call the `follow_user` and `follow_thread` functions. These functions are very similar to the `like_post` function described earlier, but they insert or delete follow records instead of like records. The follow records are stored in a new tables `followers` and `memberships` that have a many-to-many relationship with the `users` and `threads` tables, respectively.
+An interesting feature related to follows is the ability to view the followers of a user or group. The following code shows my implementation, which I will explain in detail:
 ``` python
+def thread(thread_id):
+    db = DatabaseWorker('database.db')
+    thread = db.search(f"SELECT * FROM threats WHERE id={thread_id}")
+    posts = db.search(f"SELECT posts.*, users.username FROM posts JOIN users ON posts.user_id = users.id WHERE posts.threat_id={thread_id}", multiple=True)
+    members = db.search(f"SELECT users.username FROM memberships JOIN users ON memberships.user_id = users.id WHERE threat_id={thread_id}", multiple=True)
+    members = ", ".join([m[0] for m in members])
+    return render_template('thread.html', thread=thread, posts=posts, members=members)
 ```
+In this code, the `thread` function retrieves the group information from the database (`thread = db.search(f"SELECT * FROM threats WHERE id={thread_id}")`). It then retrieves the posts and members of the group from the database using a join query (`posts = db.search(f"SELECT posts.*, users.username FROM posts JOIN users ON posts.user_id = users.id WHERE posts.threat_id={thread_id}", multiple=True)` and `members = db.search(f"SELECT users.username FROM memberships JOIN users ON memberships.user_id = users.id WHERE threat_id={thread_id}", multiple=True)`). I then extracted members' usernames from the query results and joined into a single string using `join` function (`members = ", ".join([m[0] for m in members])`). The thread information, posts, and members are passed to the `thread.html` template for rendering.
+
+### Profile
+The application required a profile page for each user and group. This page needed to display the user's or group's information, posts, followers, and in the case of a user, the users they are following. 
+
+
+
 
