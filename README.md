@@ -74,4 +74,21 @@ def like_post(post_id):
         db.run_query(f"UPDATE posts SET likes=likes-1 WHERE id={post_id}")  # Decrement the number of likes for the post
     return redirect(url_for('home'))  # Redirect the user to the home page
 ```
+In this code, after checking if the user is logged in, the function runs a search query to check if the user has already liked the post (`res = db.search(f"SELECT * FROM likes WHERE user_id={id} AND post_id={post_id}")`). If the user has not liked the post (`if not res:`), a new like record is inserted into the database (`db.run_query(f"INSERT INTO likes (user_id, post_id) VALUES ({id}, {post_id})"`), and the number of likes for the post is incremented (`db.run_query(f"UPDATE posts SET likes=likes+1 WHERE id={post_id}")`). In the opposite case (`else:`), the like record is removed from the database, and the number of likes for the post is decremented this time using `DELETE` instead of `INSERT` (`db.run_query(f"DELETE FROM likes WHERE user_id={id} AND post_id={post_id}")`). The user is then redirected to the home page (`return redirect(url_for('home'))`).
+It was necessary to set up multiple tables and relationships between them to implement the like system. Here is the SQL code for creating the necessary tables I will explain in detail:
+``` sql
+CREATE TABLE IF NOT EXISTS likes (
+    id INTEGER PRIMARY KEY,
+    post_id INT,
+    user_id INT,
+    FOREIGN KEY (post_id) REFERENCES posts(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+```
+In this code, a new table named `likes` is created with three columns: `id`, `post_id`, and `user_id`. The `post_id` and `user_id` columns are foreign keys that reference the `id` columns of the `posts` and `users` tables, respectively. This relationship ensures that each like record is associated with a specific post and user. This table connects the `posts` and `users` tables that have a many-to-many relationship. 
+
+### Follows
+My client required a system for users to follow other users. This system needed to ensure that only logged-in users or groups. The following code shows my implementation, which I will explain in detail:
+``` python
+```
 
