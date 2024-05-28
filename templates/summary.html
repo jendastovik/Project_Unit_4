@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Summary</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cirrus-ui/dist/cirrus.min.css">
+</head>
+<body>
+    {% for element in content %}
+    <div class="post">
+        <p><a href="/{{ type }}/{{ element[0] }}">{{ element[1] }}</a></p>
+    </div>
+    {% endfor %}
+    <button type="button" class="cancelbtn" onclick="window.location.href='/home'">Cancel</button>
+    
+</body>
+</html>

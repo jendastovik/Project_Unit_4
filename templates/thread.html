@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ thread[1] }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cirrus-ui/dist/cirrus.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+</head>
+<body>
+    <h1>{{ thread[1] }}</h1>
+    <div>{{ thread[2] }}</div>
+    <p>Members: {{ members }}</p>
+    <button type="button" class="btn-light" onclick="window.location.href='/follow/thread/{{ thread[0] }}'">Follow/Unfollow Climbing Soctor</button>
+    <h2>Posts</h2>
+    {% for post in posts %}
+    <div class="post">
+        <h2><a href="/post/{{ post[0] }}">{{ post[1] }}</a></h2>
+        <p>{{ post[2] }}</p>
+        <p>Climber: <a href="/profile/{{ post[5] }}">{{ post[9] }}</a></p>
+        <button type="button" class="btn-transparent" onclick="window.location.href='/like/{{ post[0] }}'"><i class="fa fa-thumbs-up"></i>{{ post[4] }}</button>
+        <button type="button" class="btn-transparent"><i class="fa fa-comment"></i>{{ post[7] }}</button>
+    </div>
+    {% endfor %}
+    <button type="button" class="cancelbtn" onclick="window.location.href='/home'">Cancel</button>
+    <a href="/create" class="create-button">+</a>
+</body>
+</html>

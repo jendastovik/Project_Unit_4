@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ post[1] }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cirrus-ui/dist/cirrus.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+</head>
+<body>
+    <div class="post">
+        <h2><a href="/post/{{ post[0] }}">{{ post[1] }}</a></h2>
+        <p>{{ post[2] }}</p>
+        <p>Climbing Soctor: <a href="/thread/{{ post[6] }}">{{ post[9] }}</a></p>
+        <p>Climber: <a href="/profile/{{ post[5] }}">{{ post[10] }}</a></p>
+        <button type="button" class="btn-transparent" onclick="window.location.href='/like/{{ post[0] }}'"><i class="fa fa-thumbs-up"></i>{{ post[4] }}</button>
+        <button type="button" class="btn-transparent"><i class="fa fa-comment"></i>{{ post[7] }}</button>
+        <button type="button" class="btn-transparent" onclick="window.location.href='/delete/{{ post[0] }}'"><i class="fa fa-trash"></i></button>
+        {% if post[8] %}
+            <img src="/static/user_images/{{ post[8] }}" class="image">
+        {% endif %}
+    </div>
+    
+
+
+    <h2>Comments</h2>
+    {% for comment in comments %}
+    <div class="comment">
+        <p>{{ comment[1] }}</p>
+        <p>Climber: <a href="/profile/{{ comment[4] }}">{{ comment[5] }}</a></p>
+        <button type="button" class="btn-transparent" onclick="window.location.href='/delete_comment/{{ comment[0] }}'"><i class="fa fa-trash"></i></button>
+    </div>
+    {% endfor %}
+
+    <h2>Add a Comment</h2>
+    <form action="/post/{{ post[0] }}" method="post">
+        <label for="content">Content:</label><br>
+        <textarea id="content" name="content" required></textarea><br>
+        <input type="submit" value="Add Comment">
+    </form>
+    <button type="button" class="cancelbtn" onclick="window.location.href='/home'">Cancel</button>
+</body>
+</html> 

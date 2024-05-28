@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Post</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cirrus-ui/dist/cirrus.min.css">
+</head>
+<body>
+    <h1>Add your latest send</h1>
+
+    <form action="/create" method="post" enctype=multipart/form-data>
+        <label for="title">Name:</label><br>
+        <input type="text" id="title" name="title" required><br>
+        <label for="content">Description:</label><br>
+        <textarea id="content" name="content" required></textarea><br>
+        <label for="thread">Climbing Sector:</label><br>
+        <select id="thread" name="threat" required>
+            {% for threat in threats %}
+                <option value="{{ threat[0] }}">{{ threat[1] }}</option>
+            {% endfor %}
+        </select><br>
+        <label for="image">Image:</label><br>
+        <input type="file" id="image" name="image" accept="image/*"><br> <!-- will accept any file type that falls under the image category, such as .jpeg, .png, .gif, etc -->
+        <input type="submit" value="Create Post">
+    </form>
+    <button type="button" class="cancelbtn" onclick="window.location.href='/home'">Cancel</button>
+
+</body>
+</html>
