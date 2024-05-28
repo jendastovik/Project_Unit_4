@@ -131,16 +131,30 @@ if request.method == 'POST' and user_id is not None:
     threat = request.form['threat']
     file = request.files['image']
     if file:         
-        file.save(f"static/user_images/{file.filename}")
-        db.insert(f"INSERT INTO posts (title, body, threat_id, user_id, image_path) VALUES ('{title}', '{content}', {threat}, {user_id}, '{file.filename}')")
+        file.save(f"static/user_images/{file.filename}")  # Save the uploaded image to the server
+        db.insert(f"INSERT INTO posts (title, body, threat_id, user_id, image_path) VALUES ('{title}', '{content}', {threat}, {user_id}, '{file.filename}')")  # Insert the post information with the image path into the database
     else:
-        db.insert(f"INSERT INTO posts (title, body, threat_id, user_id) VALUES ('{title}', '{content}', {threat}, {user_id})")
-    return redirect(url_for('home'))
-elif user_id is None:
-        return redirect(url_for('login'))
+        db.insert(f"INSERT INTO posts (title, body, threat_id, user_id) VALUES ('{title}', '{content}', {threat}, {user_id})")  # Insert the post information without an image path into the database
+    return redirect(url_for('home'))  # Redirect the user to the home page
 ```
-
-
-
-
+This code takes care of crating new post and saving it to the database. If the user has uploaded an image, the image is saved to the `static/user_images` directory on the server (`file.save(f"static/user_images/{file.filename}")`). The image path is then stored in the database along with the post information (`db.insert(f"INSERT INTO posts (title, body, threat_id, user_id, image_path) VALUES ('{title}', '{content}', {threat}, {user_id}, '{file.filename}')")`). If the user has not uploaded an image, the post information is stored in the database without an image path (`db.insert(f"INSERT INTO posts (title, body, threat_id, user_id) VALUES ('{title}', '{content}', {threat}, {user_id})")`). The user is then redirected to the home page (`return redirect(url_for('home'))`).
+File is retrieved from the form using `request.files['image']`. The html code for the form is shown below:
+``` html
+    <form action="/create" method="post" enctype=multipart/form-data>
+        <label for="title">Name:</label><br>
+        <input type="text" id="title" name="title" required><br>
+        <label for="content">Description:</label><br>
+        <textarea id="content" name="content" required></textarea><br>
+        <label for="thread">Climbing Sector:</label><br>
+        <select id="thread" name="threat" required>
+            {% for threat in threats %}
+                <option value="{{ threat[0] }}">{{ threat[1] }}</option>
+            {% endfor %}
+        </select><br>
+        <label for="image">Image:</label><br>
+        <input type="file" id="image" name="image" accept="image/*"><br> <!-- will accept any file type that falls under the image category, such as .jpeg, .png, .gif, etc -->
+        <input type="submit" value="Create Post">
+    </form>
+```
+I decide to use the `enctype=multipart/form-data` attribute in the form tag to allow file uploads. The `accept="image/*"` attribute in the input tag specifies that only image files can be uploaded such as .jpeg, .png, .gif, etc. The image input is also not set on required, so the user can create a post without an image.
 
