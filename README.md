@@ -104,6 +104,42 @@ In this code, the `thread` function retrieves the group information from the dat
 
 ### Profile
 The application required a profile page for each user and group. This page needed to display the user's or group's information, posts, followers, and in the case of a user, the users they are following. 
+There are two endpoints for the profile page: `/profile/<user_id>` and `/thread/<thread_id>` that call the `profile` and `thread` functions. I've already described the `thread` function in the previous section. The `profile` function is similar to the `thread` function but retrieves information about a user instead of a group. 
+There are also two enpoints for the profile page: `/profile` and `/thread` that call the `user_summary` and `thread_summary` functions. Both of these functions render the `summary.html` template, which displays a summary of all the users or groups in the application. The following code shows my implementation:
+``` python
+@app.route('/profile')
+def user_summary():
+    db = DatabaseWorker('database.db')
+    users = db.search("SELECT * FROM users", multiple=True)
+    return render_template('summary.html', content=users, type='profile')
+```
+``` python
+@app.route('/thread')
+def thread_summary():
+    db = DatabaseWorker('database.db')
+    threads = db.search("SELECT * FROM threats", multiple=True)
+    return render_template('summary.html', content=threads, type='thread')
+```
+In these codes, the `user_summary` and `thread_summary` functions retrieve all the users and groups from the database using a select query. The retrieved users and groups are passed to the `summary.html` template along with a type parameter that specifies whether the content is for users or groups (`return render_template('summary.html', content=users, type='profile')` and `return render_template('summary.html', content=threads, type='thread')`). I decide for this approach because it allows for code reuse and simplifies the rendering of the summary page.
+
+### Images
+The application required a system for users to upload images to their posts. This system needed to ensure that only logged-in users could upload images and that the images were stored securely on the server. The following code shows my implementation, which I will explain in detail:
+``` python
+if request.method == 'POST' and user_id is not None:
+    title = request.form['title']
+    content = request.form['content']
+    threat = request.form['threat']
+    file = request.files['image']
+    if file:         
+        file.save(f"static/user_images/{file.filename}")
+        db.insert(f"INSERT INTO posts (title, body, threat_id, user_id, image_path) VALUES ('{title}', '{content}', {threat}, {user_id}, '{file.filename}')")
+    else:
+        db.insert(f"INSERT INTO posts (title, body, threat_id, user_id) VALUES ('{title}', '{content}', {threat}, {user_id})")
+    return redirect(url_for('home'))
+elif user_id is None:
+        return redirect(url_for('login'))
+```
+
 
 
 

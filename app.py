@@ -59,7 +59,6 @@ def profile(user_id):
     user = db.search(f"SELECT * FROM users WHERE id={user_id}")
     posts = db.search(f"SELECT posts.*, threats.name FROM posts JOIN threats ON posts.threat_id = threats.id WHERE posts.user_id={user_id}", multiple=True)
     following = db.search(f"SELECT users.username FROM followers JOIN users ON followers.following_id = users.id WHERE follower_id={user_id}", multiple=True)
-    print(", ".join([f[0] for f in following]))
     following = ", ".join([f[0] for f in following])
     followers = db.search(f"SELECT users.username FROM followers JOIN users ON followers.follower_id = users.id WHERE following_id={user_id}", multiple=True)
     followers = ", ".join([f[0] for f in followers])
