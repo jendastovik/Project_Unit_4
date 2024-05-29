@@ -1,7 +1,7 @@
 from flask import Flask
 from database_worker import DatabaseWorker
 from flask import render_template
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import request
 from flask import make_response
 from flask import redirect
@@ -9,14 +9,19 @@ from flask import url_for
 from flask import Flask, request, render_template, redirect, url_for, make_response
 from database_worker import make_hash, check_hash
 from flask import session
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import schedule
+import subprocess
 
 app = Flask(__name__)
-app.secret_key = 'your secret key'
+app.secret_key = 'very very secret key'
 
 @app.route('/home')
 def home():
     db = DatabaseWorker('database.db')
     posts = db.search("SELECT posts.*, threats.name, users.username FROM posts JOIN threats ON posts.threat_id = threats.id JOIN users ON posts.user_id = users.id", multiple=True)
+    posts.reverse()
     return render_template('main.html', posts=posts)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -64,6 +69,7 @@ def profile(user_id):
     followers = ", ".join([f[0] for f in followers])
     threads = db.search(f"SELECT threats.name FROM memberships JOIN threats ON memberships.threat_id = threats.id WHERE user_id={user_id}", multiple=True)
     threads = ", ".join([t[0] for t in threads])
+    posts.reverse()
     return render_template('profile.html', user=user, posts=posts, following=following, followers=followers, threads=threads)
 
 @app.route('/thread/<thread_id>')
@@ -73,6 +79,7 @@ def thread(thread_id):
     posts = db.search(f"SELECT posts.*, users.username FROM posts JOIN users ON posts.user_id = users.id WHERE posts.threat_id={thread_id}", multiple=True)
     members = db.search(f"SELECT users.username FROM memberships JOIN users ON memberships.user_id = users.id WHERE threat_id={thread_id}", multiple=True)
     members = ", ".join([m[0] for m in members])
+    posts.reverse()
     return render_template('thread.html', thread=thread, posts=posts, members=members)
 
 
@@ -195,6 +202,33 @@ def user_summary():
     db = DatabaseWorker('database.db')
     users = db.search("SELECT * FROM users", multiple=True)
     return render_template('summary.html', content=users, type='profile')
+
+def send_email(user, posts):
+    fromaddr = "EMAIL"
+    toaddr = user[2]
+    body = """\
+    Subject: Here are this week posts\n\n""" # followed by two newlines (\n) to ensures that 'here are this week posts' is a subject
+    for post in posts:
+        body += f"Title: {post[1]}\nContent: {post[2]}\n\n"
+
+    # server = smtplib.SMTP(`smt server`, `port`)
+    # server.starttls()
+    # server.login(fromaddr, "PASSWORD")
+    # server.sendmail(fromaddr, toaddr, body)
+    # server.quit()
+
+def job():
+    db = DatabaseWorker('database.db')
+    users = db.search("SELECT * FROM users", multiple=True)
+    for user in users:
+        one_week_ago = datetime.now() - timedelta(weeks=1)
+        posts = db.search(f"SELECT * FROM posts WHERE user_id={user[0]} AND created_at > '{one_week_ago}'", multiple=True)
+        if posts:
+            send_email(user, posts)
+    
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=job, trigger="interval", weeks=1)
+scheduler.start()
 
 if __name__ == '__main__':
     app.run(debug=True)

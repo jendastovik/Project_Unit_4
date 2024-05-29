@@ -16,7 +16,7 @@
     <div class="topnav">
         <a href="/home">Home |</a>
         <a href="/my_feed">My feed |</a>
-        <a href="/thread">Climbing Soctors |</a>
+        <a href="/thread">Climbing Sectors |</a>
         <a href="/profile">Users</a>
     </div>
 
@@ -27,7 +27,7 @@
     <div class="post">
         <h2><a href="/post/{{ post[0] }}">{{ post[1] }}</a></h2>
         <p>{{ post[2] }}</p>
-        <p>Climbing Soctor: <a href="/thread/{{ post[6] }}">{{ post[9] }}</a></p>
+        <p>Climbing Sector: <a href="/thread/{{ post[6] }}">{{ post[9] }}</a></p>
         <p>Climber: <a href="/profile/{{ post[5] }}">{{ post[10] }}</a></p>
         <button type="button" class="btn-transparent" onclick="window.location.href='/like/{{ post[0] }}'"><i class="fa fa-thumbs-up"></i>{{ post[4] }}</button>
         <button type="button" class="btn-transparent"><i class="fa fa-comment"></i>{{ post[7] }}</button>
