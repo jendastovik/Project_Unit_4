@@ -27,7 +27,7 @@ app.secret_key = "randomtextwithnumbers1234567"
 ```
 I use session to ensure that the users don't have access and can't change stored data to access other users' data. The session data is stored on the server, and only the ID is sent to the client in a cookie. Other safe option would be to store the user's hashed ID directly in a cookie.
 
-### Comments
+### Comments (also nothing groundbreaking, can be skipped)
 The application required a system for users to post comments on various posts. This system needed to ensure that only logged-in users could submit comments. The following code shows my implementation, which I will explain in detail:
 ``` python
 user_id = session.get('id')  # Retrieve the user's ID from the session
