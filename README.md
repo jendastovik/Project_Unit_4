@@ -121,7 +121,7 @@ Using one complex query instead of multiple simple queries is more efficient bec
 Third option would be to run one simple query and then filter the results in Python code. This would involve retrieving all the posts from the database and then filtering them based on the groups or users that the current user follows. This approach is also less efficient because it requires more data to be transferred between the database and the application, and more processing to be done in the application code and would also lead to a decrease in performance.
 
 ## Criteria D: Functionality
-[video link here](videolink)
+[video link here](https://drive.google.com/file/d/1qh6rCmIVfvyRLMY_x0v6HK_MRyUJWqI2/view?usp=sharing)
 
 ## Criteria E: Evaluation
 ### Meeting Success Criteria

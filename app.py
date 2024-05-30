@@ -212,6 +212,8 @@ def send_email(user, posts):
     for post in posts:
         body += f"Title: {post[1]}\nContent: {post[2]}\n\n"
 
+    print(body)
+
     # server = smtplib.SMTP(`smt server`, `port`)
     # server.starttls()
     # server.login(fromaddr, "PASSWORD")
@@ -230,6 +232,7 @@ def job():
 # scheduler = BackgroundScheduler()
 # scheduler.add_job(func=job, trigger="interval", weeks=1)
 # scheduler.start()
+job()
 
 if __name__ == '__main__':
     app.run(debug=True)
