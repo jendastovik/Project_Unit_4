@@ -189,6 +189,7 @@ def my_feed():
         return redirect(url_for('login'))
     db = DatabaseWorker('database.db')
     posts = db.search(f"SELECT posts.*, threats.name, users.username FROM posts JOIN threats ON posts.threat_id = threats.id JOIN users ON posts.user_id = users.id WHERE posts.threat_id IN (SELECT threat_id FROM memberships WHERE user_id = {user_id}) OR posts.user_id IN (SELECT following_id FROM followers WHERE follower_id = {user_id})", multiple=True)
+    posts.reverse()
     return render_template('main.html', posts=posts)
 
 @app.route('/thread')
@@ -226,9 +227,9 @@ def job():
         if posts:
             send_email(user, posts)
     
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=job, trigger="interval", weeks=1)
-scheduler.start()
+# scheduler = BackgroundScheduler()
+# scheduler.add_job(func=job, trigger="interval", weeks=1)
+# scheduler.start()
 
 if __name__ == '__main__':
     app.run(debug=True)

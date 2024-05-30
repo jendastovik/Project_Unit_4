@@ -1,110 +1,9 @@
 # Project Unite 4
 ## Criteria C: Development
-### Likes
-My client required a system for users to like posts. This system needed to ensure that only logged-in users could like posts and that each user could only like a post once. The following code shows my implementation, which I will explain in detail:
-``` python
-def like_post(post_id):
-    db = DatabaseWorker('database.db')  # Create an instance of the DatabaseWorker class to interact with the database
-    id = session.get('id')  # Retrieve the user's ID from the session
-    if id is None:  # Check if the user is not logged in
-        return redirect(url_for('login'))  # Redirect the user to the login page
-    res = db.search(f"SELECT * FROM likes WHERE user_id={id} AND post_id={post_id}")  # Check if the user has already liked the post
-    if not res:  # If the user has not liked the post
-        db.run_query(f"INSERT INTO likes (user_id, post_id) VALUES ({id}, {post_id})")  # Insert a new like record into the database
-        db.run_query(f"UPDATE posts SET likes=likes+1 WHERE id={post_id}")  # Increment the number of likes for the post
-    else:  # If the user has already liked the post
-        db.run_query(f"DELETE FROM likes WHERE user_id={id} AND post_id={post_id}")  # Remove the like record from the database
-        db.run_query(f"UPDATE posts SET likes=likes-1 WHERE id={post_id}")  # Decrement the number of likes for the post
-    return redirect(url_for('home'))  # Redirect the user to the home page
-```
-In this code, after checking if the user is logged in, the function runs a search query to check if the user has already liked the post (`res = db.search(f"SELECT * FROM likes WHERE user_id={id} AND post_id={post_id}")`). If the user has not liked the post (`if not res:`), a new like record is inserted into the database (`db.run_query(f"INSERT INTO likes (user_id, post_id) VALUES ({id}, {post_id})"`), and the number of likes for the post is incremented (`db.run_query(f"UPDATE posts SET likes=likes+1 WHERE id={post_id}")`). In the opposite case (`else:`), the like record is removed from the database, and the number of likes for the post is decremented this time using `DELETE` instead of `INSERT` (`db.run_query(f"DELETE FROM likes WHERE user_id={id} AND post_id={post_id}")`). The user is then redirected to the home page (`return redirect(url_for('home'))`).
-It was necessary to set up multiple tables and relationships between them to implement the like system. Here is the SQL code for creating the necessary tables I will explain in detail:
-``` sql
-CREATE TABLE IF NOT EXISTS likes (
-    id INTEGER PRIMARY KEY,
-    post_id INT,
-    user_id INT,
-    FOREIGN KEY (post_id) REFERENCES posts(id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-```
-In this code, a new table named `likes` is created with three columns: `id`, `post_id`, and `user_id`. The `post_id` and `user_id` columns are foreign keys that reference the `id` columns of the `posts` and `users` tables, respectively. This relationship ensures that each like record is associated with a specific post and user. This table connects the `posts` and `users` tables that have a many-to-many relationship. 
-
-### Follows
-My client required a system for users to follow other users. This system needed to ensure that only logged-in users or groups. 
-This system is implemented through two main endpoints: `/follow/user/<user_id>` and `follow/thread/<thread_id>` that call the `follow_user` and `follow_thread` functions. These functions are very similar to the `like_post` function described earlier, but they insert or delete follow records instead of like records. The follow records are stored in a new tables `followers` and `memberships` that have a many-to-many relationship with the `users` and `threads` tables, respectively.
-An interesting feature related to follows is the ability to view the followers of a user or group. The following code shows my implementation, which I will explain in detail:
-``` python
-def thread(thread_id):
-    db = DatabaseWorker('database.db')
-    thread = db.search(f"SELECT * FROM threats WHERE id={thread_id}")
-    posts = db.search(f"SELECT posts.*, users.username FROM posts JOIN users ON posts.user_id = users.id WHERE posts.threat_id={thread_id}", multiple=True)
-    members = db.search(f"SELECT users.username FROM memberships JOIN users ON memberships.user_id = users.id WHERE threat_id={thread_id}", multiple=True)
-    members = ", ".join([m[0] for m in members])
-    return render_template('thread.html', thread=thread, posts=posts, members=members)
-```
-In this code, the `thread` function retrieves the group information from the database (`thread = db.search(f"SELECT * FROM threats WHERE id={thread_id}")`). It then retrieves the posts and members of the group from the database using a join query (`posts = db.search(f"SELECT posts.*, users.username FROM posts JOIN users ON posts.user_id = users.id WHERE posts.threat_id={thread_id}", multiple=True)` and `members = db.search(f"SELECT users.username FROM memberships JOIN users ON memberships.user_id = users.id WHERE threat_id={thread_id}", multiple=True)`). I then extracted members' usernames from the query results and joined into a single string using `join` function (`members = ", ".join([m[0] for m in members])`). This way all the formatting is done in the backend and only the final string is passed to the template.
-The thread information, posts, and members are passed to the `thread.html` template for rendering.
-
-### Profile
-The application required a profile page for each user and group. This page needed to display the user's or group's information, posts, followers, and in the case of a user, the users they are following. 
-There are two endpoints for the profile page: `/profile/<user_id>` and `/thread/<thread_id>` that call the `profile` and `thread` functions. I've already described the `thread` function in the previous section. The `profile` function is similar to the `thread` function but retrieves information about a user instead of a group. 
-There are also two endpoints for the profile page: `/profile` and `/thread` that call the `user_summary` and `thread_summary` functions. Both of these functions render the `summary.html` template, which displays a summary of all the users or groups in the application. The following code shows my implementation:
-``` python
-@app.route('/profile')
-def user_summary():
-    db = DatabaseWorker('database.db')
-    users = db.search("SELECT * FROM users", multiple=True)
-    return render_template('summary.html', content=users, type='profile')
-```
-``` python
-@app.route('/thread')
-def thread_summary():
-    db = DatabaseWorker('database.db')
-    threads = db.search("SELECT * FROM threats", multiple=True)
-    return render_template('summary.html', content=threads, type='thread')
-```
-In these codes, the `user_summary` and `thread_summary` functions retrieve all the users and groups from the database using a select query. The retrieved users and groups are passed to the `summary.html` template along with a type parameter that specifies whether the content is for users or groups (`return render_template('summary.html', content=users, type='profile')` and `return render_template('summary.html', content=threads, type='thread')`). I decide for this approach because it allows for code reuse and simplifies the rendering of the summary page.
-
-### Images
-The application required a system for users to upload images to their posts. This system needed to ensure that only logged-in users could upload images and that the images were stored securely on the server. The following code shows my implementation, which I will explain in detail:
-``` python
-if request.method == 'POST' and user_id is not None:
-    title = request.form['title']
-    content = request.form['content']
-    threat = request.form['threat']
-    file = request.files['image']
-    if file:         
-        file.save(f"static/user_images/{file.filename}")  # Save the uploaded image to the server
-        db.insert(f"INSERT INTO posts (title, body, threat_id, user_id, image_path) VALUES ('{title}', '{content}', {threat}, {user_id}, '{file.filename}')")  # Insert the post information with the image path into the database
-    else:
-        db.insert(f"INSERT INTO posts (title, body, threat_id, user_id) VALUES ('{title}', '{content}', {threat}, {user_id})")  # Insert the post information without an image path into the database
-    return redirect(url_for('home'))  # Redirect the user to the home page
-```
-This code takes care of crating new post and saving it to the database. If the user has uploaded an image, the image is saved to the `static/user_images` directory on the server (`file.save(f"static/user_images/{file.filename}")`). The image path is then stored in the database along with the post information (`db.insert(f"INSERT INTO posts (title, body, threat_id, user_id, image_path) VALUES ('{title}', '{content}', {threat}, {user_id}, '{file.filename}')")`). If the user has not uploaded an image, the post information is stored in the database without an image path (`db.insert(f"INSERT INTO posts (title, body, threat_id, user_id) VALUES ('{title}', '{content}', {threat}, {user_id})")`). The user is then redirected to the home page (`return redirect(url_for('home'))`).
-File is retrieved from the form using `request.files['image']`. The html code for the form is shown below:
-``` html
-    <form action="/create" method="post" enctype=multipart/form-data>
-        <label for="title">Name:</label><br>
-        <input type="text" id="title" name="title" required><br>
-        <label for="content">Description:</label><br>
-        <textarea id="content" name="content" required></textarea><br>
-        <label for="thread">Climbing Sector:</label><br>
-        <select id="thread" name="threat" required>
-            {% for threat in threats %}
-                <option value="{{ threat[0] }}">{{ threat[1] }}</option>
-            {% endfor %}
-        </select><br>
-        <label for="image">Image:</label><br>
-        <input type="file" id="image" name="image" accept="image/*"><br> <!-- will accept any file type that falls under the image category, such as .jpeg, .png, .gif, etc -->
-        <input type="submit" value="Create Post">
-    </form>
-```
-I decide to use the `enctype=multipart/form-data` attribute in the form tag to allow file uploads. The `accept="image/*"` attribute in the input tag specifies that only image files can be uploaded such as .jpeg, .png, .gif, etc. The image input is also not set on required, so the user can create a post without an image.
-
 ### Email Notifications
 The application required a system for sending email notifications to users. I decided to go with newsletter system, where users are being sent emails with the latest posts from the application every week. 
-To send the email notifications, I chose to use SMTP (Simple Mail Transfer Protocol) servers with the `smtplib` library in Python. The following code shows my implementation:
+To send the email notifications, I chose to use SMTP (Simple Mail Transfer Protocol) servers with the `smtplib` library in Python because it's a simple and widely used method for sending emails programmatically. The `smtplib` library allows you to connect to an SMTP server, authenticate with it, and send emails using the SMTP protocol.
+The following code shows my implementation:
 ``` python
 def send_email(user, posts):
     fromaddr = "EMAIL"
@@ -162,62 +61,93 @@ An instance of APScheduler runs in the background as a separate thread which all
 
 The second option would be the most reliable because it's not dependant on the Python script at all but is complex to setup as knowledge of `cron` an terminal is required. This is why I decided for the third option which is also a good choice as it can be integrated with the Flask application easily, however, if the python process is killed, the scheduler will stop running.
 
-
-### Login System (similar to example solution, can be skipped)
-My client required a login system for the application so that different users could have their unique `my feed` page, `profile` page, can like and comment on posts and follow different users of groups. I decided to use sessions to do so. The code below shows my first attempt and I will explain in detail below:
-    
-```python
-if request.method == 'POST':
-    uname = request.form['uname']  # Retrieve the username from the login form
-    password = request.form['psw']  # Retrieve the password from the login form
-    db = DatabaseWorker('database.db')  # Create an instance of the DatabaseWorker class to interact with the database
-    user = db.search(f"SELECT * FROM users WHERE username='{uname}'")  # Search for the user in the database
-    if user:  # If a user is found
-        if check_hash(password, user[3]):  # If the hashed password matches the provided password
-            session['id'] = str(user[0])  # Store the user's ID in the session
-            return redirect(url_for('home'))  # Redirect the user to the home page
-    return redirect(url_for('login'))  # Redirect the user back to the login page if the username or password is incorrect
+### Likes
+My client required a system for users to like posts. This system needed to ensure that only logged-in users could like posts and that each user could only like a post once.
+Firstly, it was necessary to store and ID of loged in user. I decided to store the user ID in the session object, which is a dictionary that stores data associated with a specific user session. I use session to ensure that the users don't have access and can't change stored data to access other users' data. The session data is stored on the server, and only the ID is sent to the client in a cookie. Other safe option would be to store the user's hashed ID directly in a cookie, but this would be more complex to implement. 
+This is how the ID is retrieved from the session:
+``` python
+id = session.get('id')  # Retrieve the user's ID from the session
 ```
-In this code, when the server receives a POST request (`if request.method == 'POST'`), it retrieves the username (`uname`) and password (`password`) from the login form using the `request.form` dictionary. A DatabaseWorker object is created to interact with the database (`db = DatabaseWorker('database.db')`). The user is searched in the database using the provided username (`user = db.search(f"SELECT * FROM users WHERE username='{uname}'")`).
-
-If a user is found and the hashed password matches the provided password (`if user and check_hash(password, user[3]):`), the user's ID is stored in the session (`session['id'] = str(user[0])`), and the user is redirected to the home page (`return redirect(url_for('home'))`). If the username or password is incorrect, the user is redirected back to the login page (`return redirect(url_for('login'))`).
-
-Sessions store data, in this case signed users ID,  on the server. To use session variables securely, It's necessary to define a secret key in the Flask application, as shown below:
-
+To use session variables securely, It's necessary to define a secret key in the Flask application, as shown below:
 ``` python
 app = Flask(__name__)
 app.secret_key = "randomtextwithnumbers1234567"
 ```
-I use session to ensure that the users don't have access and can't change stored data to access other users' data. The session data is stored on the server, and only the ID is sent to the client in a cookie. Other safe option would be to store the user's hashed ID directly in a cookie.
-
-### Comments (also nothing groundbreaking, can be skipped)
-The application required a system for users to post comments on various posts. This system needed to ensure that only logged-in users could submit comments. The following code shows my implementation, which I will explain in detail:
-``` python
-user_id = session.get('id')  # Retrieve the user's ID from the session
-if request.method == 'POST' and user_id is not None:  # Check if the request method is POST and the user is logged in
-    content = request.form['content']  # Retrieve the comment content from the form
-    db.insert(f"INSERT INTO comments (body, post_id, user_id) VALUES ('{content}', {post_id}, {user_id})")  # Insert the comment into the database
-    response = make_response(redirect(url_for('post', post_id=post_id)))  # Create a response object to redirect the user to the post page
-    db.run_query(f"UPDATE posts SET comments=comments+1 WHERE id={post_id}")  # Increment the number of comments for the post
-    return response  # Return the response object
-elif user_id is None and request.method == 'POST':  # If the user is not logged in and the request method is POST
-    return redirect(url_for('login'))  # Redirect the user to the login page
+Next, I used SQL queries to get information about the post that the user wants to like from the database using instance of `DatabaseWorker` class.  
+```python
+db = DatabaseWorker('database.db')  # Create an instance of the DatabaseWorker class to interact with the database
+res = db.search(f"SELECT * FROM likes WHERE user_id={id} AND post_id={post_id}") 
 ```
-In this code, the user's ID is retrieved from the session (`user_id = session.get('id')`). If the request method is POST and the user is logged in (`if request.method == 'POST' and user_id is not None:`), the comment information is retrieved from the form. The comment is inserted into the database using instance of `DatabaseWorker` class with the post ID and user ID (`db.insert(f"INSERT INTO comments (body, post_id, user_id) VALUES ('{content}', {post_id}, {user_id})")`).
-After inserting the comment, the user is redirected to the post page and the number of comments for that post is updated in the database for specific post (`db.run_query(f"UPDATE posts SET comments=comments+1 WHERE id={post_id}")`).
-
-There is also a requirements to delete comments. The following code shows my implementation, which I will explain in detail:
+`WHERE` clause in the SQL query ensures that only the likes of the current user for current post are retrieved. 
+Then I used `if` statement to check if query has returned any results. If it hasn't, it means that the user hasn't liked the post yet, and I can insert a new like into the database. If it has, it means that the user has already liked the post, and I can remove the like from the database. 
 ``` python
-@app.route('/delete_comment/<comment_id>')
-def delete_comment(comment_id):
-    db = DatabaseWorker('database.db')  # Create an instance of the DatabaseWorker class to interact with the database
-    user_id = db.search(f"SELECT user_id FROM comments WHERE id={comment_id}", multiple=True)[0][0]  # Retrieve the user ID who posted the comment
-    post_id = db.search(f"SELECT post_id FROM comments WHERE id={comment_id}")  # Retrieve the post ID of the comment
-    if session.get('id') == str(user_id):  # Check if the logged-in user is authorized to delete the comment
-        db.run_query(f"UPDATE posts SET comments=comments-1 WHERE id={post_id[0]}")  # Decrement the number of comments for the post
-        db.run_query(f"DELETE FROM comments WHERE id={comment_id}")  # Delete the comment from the database
-    return redirect(url_for('post', post_id=post_id[0]))  # Redirect the user to the post page
+if not res:  # If the user has not liked the post
+    db.run_query(f"INSERT INTO likes (user_id, post_id) VALUES ({id}, {post_id})")  # Insert a new like record into the database
+    db.run_query(f"UPDATE posts SET likes=likes+1 WHERE id={post_id}")  # Increment the number of likes for the post
+else:  # If the user has already liked the post
+    db.run_query(f"DELETE FROM likes WHERE user_id={id} AND post_id={post_id}")  # Remove the like record from the database
+    db.run_query(f"UPDATE posts SET likes=likes-1 WHERE id={post_id}")  # Decrement the number of likes for the post
+return redirect(url_for('home'))  # Redirect the user to the home page
 ```
-when a delete button on the comment is clicked, the user is redirected to the `/delete_comment/<comment_id>` endpoint and `delete_comment` function is called. The comment ID is passed as a parameter to the function (`def delete_comment(comment_id):`). Function checks if the user is logged in and if the user ID matches the ID of the user who posted the comment (`if session.get('id') == str(user_id):`). If the user is authorized, the comment is deleted from the database (`db.run_query(f"DELETE FROM comments WHERE id={comment_id}")`), and the number of comments for the post is decremented (`db.run_query(f"UPDATE posts SET comments=comments-1 WHERE id={post_id[0]}")`). The user is then redirected to the post page (`return redirect(url_for('post', post_id=post_id[0]))`).
+The `INSERT INTO` query inserts a new like record into the database, and the `UPDATE` query increments the number of likes for the post. The `DELETE FROM` query removes the like record from the database, and the `UPDATE` query decrements the number of likes for the post. The user is then redirected to the home page after the like has been added or removed using the `redirect` function with the `url_for` function as an argument. The `url_for` function generates a URL for the specified endpoint, in this case, the `home` endpoint.
 
+It was necessary to set up multiple tables and relationships between them to implement the like system. Here is the SQL code for creating one of the necessary tables I will explain in detail:
+``` sql
+CREATE TABLE IF NOT EXISTS likes (
+    id INTEGER PRIMARY KEY,
+    post_id INT,
+    user_id INT,
+    FOREIGN KEY (post_id) REFERENCES posts(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+```
+In this code, a new table named `likes` is created with three columns: `id`, `post_id`, and `user_id`. The `post_id` and `user_id` columns are foreign keys that reference the `id` columns of the `posts` and `users` tables, respectively. This relationship ensures that each like record is associated with a specific post and user. This table connects the `posts` and `users` tables that have a many-to-many relationship. 
+
+## My feed
+The client required a system for users to see posts from other users or groups that they follow. I decided to implement a feed system. The feed system needs to ensure that only posts from users or groups that the current user follows are displayed.
+I used `JOIN`, `WHERE`, and `IN` clauses in the SQL query to retrieve the posts from the database. The `JOIN` clause allows you to combine rows from two or more tables based on a related column between them. This is the mention query I will explain in detail:
+``` sql
+SELECT posts.*, threats.name, users.username 
+FROM posts 
+JOIN threats ON posts.threat_id = threats.id 
+JOIN users ON posts.user_id = users.id 
+WHERE posts.threat_id IN (SELECT threat_id FROM memberships WHERE user_id = {user_id}) 
+    OR posts.user_id IN (SELECT following_id FROM followers WHERE follower_id = {user_id})
+```
+In this code snippet, the `JOIN` clause is used to combine the `posts`, `threats`, and `users` tables so that the name of the user and the thread of the post can be displayed alongside the post. The `WHERE` clause filters the posts so only the posts from the groups or users that the current user follows are displayed. The `IN` operator is used to check if the `threat_id` of the post is in the list of `threat_id` values that the current user follows or if the `user_id` of the post is in the list of `following_id` values that the current user follows. This way, only the posts from the groups or users that the current user follows are displayed in the feed.
+
+Using one complex query instead of multiple simple queries is more efficient because it reduces the number of database queries that need to be executed. This is because the database engine can optimize the execution of the query and reduce the number of times it needs to access the database. This can improve the performance of the application and reduce the load on the database server.
+
+Third option would be to run one simple query and then filter the results in Python code. This would involve retrieving all the posts from the database and then filtering them based on the groups or users that the current user follows. This approach is also less efficient because it requires more data to be transferred between the database and the application, and more processing to be done in the application code and would also lead to a decrease in performance.
+
+## Criteria D: Functionality
+[video link here](videolink)
+
+## Criteria E: Evaluation
+### Meeting Success Criteria
+| Success Criteria                                                                 | Met | Description                                                                             |
+|----------------------------------------------------------------------------------|-----|-----------------------------------------------------------------------------------------|
+| The solution allows users to securely register and log in with hashed passwords. | Yes | Implements a secure login and registration system with password hashing using `session`.   |
+| The solution enables users to create and delete comments.                 | Yes | Provides functionality for user comments via the `/post/<post_id>` and `/delete_comment/<comment_id>` endpoints.  |
+| The solution allows users to add or remove likes on posts and comments.          | Yes | Enables users to engage with content by adding or removing likes via the `/like/<post_id>` endpoint.  |
+| The solution supports users in following/unfollowing other users or groups. | Yes | Facilitates community building by allowing users to follow/unfollow others and topics via the `/follow/thread/<thread_id>` and `/follow/user/<user_id>` endpoints.  |
+| The solution includes a profile page with relevant user information | Yes | Features a profile page displaying user email, followers, following, and activity.             |
+| The solution allows users to upload and manage images | Yes | Provides image uploading functionality to enrich user profiles and posts.               |
+| The solution weekly newsletter via email to all users | Yes | Supports email sending for account-related notifications using SMTP.         |
+
+### Feedback from Client (Peers in this case)
+Peers generally liked the application and considered success criteria to be met (see appendix 1 and 2). During the beta testing, one suggested to implement pop-up notifications confirming actions like successful sign-ins and post deletions (see appendix 1). Another possible improvement highlighted by the peers was to implement measures to prevent malware uploads and code injections while uploading images and filling forms. It was also suggested to restructure the main page to enhance user navigation and ease of use (see appendix 2).
+
+### Recommendations for Future Improvements
+After some additional discussion, I have identified several areas for improvement in the application:
+1. Implementing pop-up notifications to confirm actions like successful sign-ins and post deletions. This could be done for example using JavaScript and AJAX to display notifications without reloading the page or the `flask-flash` library to display flash messages.
+2. Implementing measures to prevent code injections in forms. This could be done by using the `flask-wtf` library to validate form data and prevent malicious code from being submitted or the `escape` function to escape special characters in user input.
+3. Implementing measures to prevent malware uploads. This could be done by validating file types and sizes before uploading them, and by scanning uploaded files for malware using a third-party service or library. It would be also useful to rename the files to prevent malicious code from being executed.
+4. Restructuring the main page to enhance user navigation and ease of use. This could be done by adding navigator bars on the sides to quickly access different groups and users, or by adding a search bar to search for specific posts or users. It would also be useful to add a filter to sort posts by date, likes, or comments.
+
+## Appendix
+### Appendix 1: Feedback from Peers
+![Appendix 1](/static/documentation/apendix_2.png)
+### Appendix 2: Feedback from Peers
+![Appendix 2](/static/documentation/apendix_1.png)
 
